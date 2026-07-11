@@ -7,7 +7,9 @@
 		"pauseRecording": "녹화 일시정지",
 		"resumeRecording": "녹화 재개",
 		"openVideoFile": "비디오 파일 열기",
-		"openProject": "프로젝트 열기"
+		"openProject": "프로젝트 열기",
+		"useVerticalTray": "세로 트레이 사용",
+		"useHorizontalTray": "가로 트레이 사용"
 	},
 	"audio": {
 		"enableSystemAudio": "시스템 오디오 활성화",
@@ -23,6 +25,10 @@
 		"searching": "검색 중...",
 		"noneFound": "카메라를 찾을 수 없음",
 		"unavailable": "카메라를 사용할 수 없음"
+	},
+	"cursor": {
+		"useEditableCursor": "편집 가능한 커서 사용",
+		"useSystemCursor": "시스템 커서 사용"
 	},
 	"sourceSelector": {
 		"loading": "소스 불러오는 중...",

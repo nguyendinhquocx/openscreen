@@ -5,6 +5,20 @@ export interface RenderRect {
 	height: number;
 }
 
+/** Floor for the reactive webcam multiplier so the camera never shrinks below ~35% at deep zoom. */
+export const WEBCAM_REACTIVE_ZOOM_MIN_SCALE = 0.35;
+
+/**
+ * Maps the live zoom scale to a webcam size multiplier, inversely (2x zoom, half size; 3x, a
+ * third) so the camera stays out of the way while zoomed and returns to full size as zoom eases
+ * back. Clamped to a floor so it never disappears. appliedScale is already eased per frame, so
+ * the camera animates in sync for free.
+ */
+export function reactiveWebcamScale(zoomScale: number): number {
+	const safe = Number.isFinite(zoomScale) && zoomScale > 0 ? zoomScale : 1;
+	return Math.max(WEBCAM_REACTIVE_ZOOM_MIN_SCALE, Math.min(1, 1 / safe));
+}
+
 export interface StyledRenderRect extends RenderRect {
 	borderRadius: number;
 	maskShape?: import("@/components/video-editor/types").WebcamMaskShape;
@@ -15,7 +29,11 @@ export interface Size {
 	height: number;
 }
 
-export type WebcamLayoutPreset = "picture-in-picture" | "vertical-stack" | "dual-frame";
+export type WebcamLayoutPreset =
+	| "picture-in-picture"
+	| "vertical-stack"
+	| "dual-frame"
+	| "no-webcam";
 /** Webcam size as a percentage of the canvas reference dimension (10–50). */
 export type WebcamSizePreset = number;
 
@@ -126,6 +144,21 @@ const WEBCAM_LAYOUT_PRESET_MAP: Record<WebcamLayoutPreset, WebcamLayoutPresetDef
 		},
 		shadow: null,
 	},
+	"no-webcam": {
+		label: "No Webcam",
+		transform: {
+			type: "overlay",
+			marginFraction: 0,
+			minMargin: 0,
+			minSize: 0,
+		},
+		borderRadius: {
+			max: 0,
+			min: 0,
+			fraction: 0,
+		},
+		shadow: null,
+	},
 };
 
 export const WEBCAM_LAYOUT_PRESETS = Object.entries(WEBCAM_LAYOUT_PRESET_MAP).map(
@@ -172,6 +205,17 @@ export function computeCompositeLayout(params: {
 	} = params;
 	const { width: canvasWidth, height: canvasHeight } = canvasSize;
 	const { width: screenWidth, height: screenHeight } = screenSize;
+
+	// no-webcam: hide the webcam, screen fills the canvas normally.
+	if (layoutPreset === "no-webcam") {
+		const screenRect = centerRect({
+			canvasSize,
+			size: screenSize,
+			maxSize: maxContentSize,
+		});
+		return { screenRect, webcamRect: null };
+	}
+
 	const webcamWidth = webcamSize?.width;
 	const webcamHeight = webcamSize?.height;
 	const preset = getWebcamLayoutPresetDefinition(layoutPreset);
@@ -184,7 +228,7 @@ export function computeCompositeLayout(params: {
 
 	if (preset.transform.type === "stack") {
 		if (!webcamWidth || !webcamHeight || webcamWidth <= 0 || webcamHeight <= 0) {
-			// No webcam — screen fills the entire canvas (cover mode)
+			// No webcam, so screen fills the whole canvas (cover mode).
 			return {
 				screenRect: { x: 0, y: 0, width: canvasWidth, height: canvasHeight },
 				webcamRect: null,
@@ -192,12 +236,12 @@ export function computeCompositeLayout(params: {
 			};
 		}
 
-		// Webcam: full width at the bottom, maintaining its aspect ratio
+		// Webcam: full width at the bottom, keeping aspect ratio.
 		const webcamAspect = webcamWidth / webcamHeight;
 		const resolvedWebcamWidth = canvasWidth;
 		const resolvedWebcamHeight = Math.round(canvasWidth / webcamAspect);
 
-		// Screen: fills remaining space at the top (cover mode — may crop sides)
+		// Screen: fills remaining space at the top (cover mode, may crop sides).
 		const screenRectHeight = canvasHeight - resolvedWebcamHeight;
 
 		return {
@@ -296,8 +340,7 @@ export function computeCompositeLayout(params: {
 		transform.minMargin,
 		Math.round(Math.min(canvasWidth, canvasHeight) * transform.marginFraction),
 	);
-	// Use geometric mean so the webcam occupies a consistent visual proportion
-	// regardless of whether the canvas is portrait or landscape.
+	// Geometric mean so the webcam keeps a consistent visual proportion in portrait or landscape.
 	const referenceDim = Math.sqrt(canvasWidth * canvasHeight);
 	const maxWidth = Math.max(transform.minSize, referenceDim * MAX_STAGE_FRACTION);
 	const maxHeight = Math.max(transform.minSize, referenceDim * MAX_STAGE_FRACTION);
@@ -316,10 +359,10 @@ export function computeCompositeLayout(params: {
 	let webcamY: number;
 
 	if (webcamPosition) {
-		// Custom position: cx/cy represent the center of the webcam as a fraction of the canvas
+		// cx/cy are the webcam center as a fraction of the canvas.
 		webcamX = Math.round(webcamPosition.cx * canvasWidth - width / 2);
 		webcamY = Math.round(webcamPosition.cy * canvasHeight - height / 2);
-		// Clamp to stay within canvas bounds
+		// Clamp inside canvas bounds.
 		webcamX = Math.max(0, Math.min(canvasWidth - width, webcamX));
 		webcamY = Math.max(0, Math.min(canvasHeight - height, webcamY));
 	} else {
@@ -371,9 +414,23 @@ function centerRectInBounds(params: { bounds: RenderRect; size: Size; maxSize: S
 	const { x: boundsX, y: boundsY, width: boundsWidth, height: boundsHeight } = bounds;
 	const { width, height } = size;
 	const { width: maxWidth, height: maxHeight } = maxSize;
-	const scale = Math.min(maxWidth / width, maxHeight / height, 1);
+	const scale = Math.min(maxWidth / width, maxHeight / height);
 	const resolvedWidth = Math.round(width * scale);
 	const resolvedHeight = Math.round(height * scale);
+
+	if (
+		maxWidth >= boundsWidth &&
+		maxHeight >= boundsHeight &&
+		Math.abs(boundsWidth - resolvedWidth) <= 4 &&
+		Math.abs(boundsHeight - resolvedHeight) <= 4
+	) {
+		return {
+			x: boundsX,
+			y: boundsY,
+			width: boundsWidth,
+			height: boundsHeight,
+		};
+	}
 
 	return {
 		x: boundsX + Math.max(0, Math.floor((boundsWidth - resolvedWidth) / 2)),

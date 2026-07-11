@@ -3,7 +3,7 @@ import type { WebcamLayoutPreset } from "@/lib/compositeLayout";
 export type ZoomDepth = 1 | 2 | 3 | 4 | 5 | 6;
 export type ZoomFocusMode = "manual" | "auto";
 export type { WebcamLayoutPreset };
-/** Webcam size as a percentage of the canvas reference dimension (10–50). */
+/** Webcam size as a percentage of the canvas reference dimension (10-50). */
 export type WebcamSizePreset = number;
 
 export const DEFAULT_WEBCAM_SIZE_PRESET: WebcamSizePreset = 25;
@@ -13,6 +13,11 @@ export const DEFAULT_WEBCAM_LAYOUT_PRESET: WebcamLayoutPreset = "picture-in-pict
 export type WebcamMaskShape = "rectangle" | "circle" | "square" | "rounded";
 
 export const DEFAULT_WEBCAM_MASK_SHAPE: WebcamMaskShape = "rectangle";
+
+export const DEFAULT_WEBCAM_MIRRORED = false;
+
+/** When true, the picture-in-picture webcam scales inversely with zoom (shrinks as you zoom in). */
+export const DEFAULT_WEBCAM_REACTIVE_ZOOM = true;
 
 export interface WebcamPosition {
 	cx: number; // normalized horizontal center (0-1)
@@ -48,14 +53,20 @@ export const ROTATION_3D_PRESETS: Record<Rotation3DPreset, Rotation3D> = {
 
 export const ROTATION_3D_PRESET_ORDER: Rotation3DPreset[] = ["iso", "left", "right"];
 
-/** Perspective distance in CSS px is computed at render-time as this factor times
- * min(viewport width, viewport height). Same factor used in preview and export so
- * the visual look is identical regardless of canvas resolution. */
+/** Perspective distance in CSS px is this factor times min(viewport w, h). Same
+ * factor in preview and export so the look matches at any canvas resolution. */
 export const ROTATION_3D_PERSPECTIVE_FACTOR = 2.6;
 
 export function rotation3DPerspective(width: number, height: number): number {
 	return Math.min(width, height) * ROTATION_3D_PERSPECTIVE_FACTOR;
 }
+
+/**
+ * Origin of a zoom region. "auto" marks zooms from the magic-wand suggest pass;
+ * toggling the wand off removes only these. Editing an auto zoom promotes it to
+ * "manual" so it survives. Undefined is treated as "manual" for back-compat.
+ */
+export type ZoomRegionSource = "auto" | "manual";
 
 export interface ZoomRegion {
 	id: string;
@@ -65,6 +76,9 @@ export interface ZoomRegion {
 	focus: ZoomFocus;
 	focusMode?: ZoomFocusMode;
 	rotationPreset?: Rotation3DPreset;
+	/** Custom scale overriding the preset depth (1.0-5.0, two decimal precision). */
+	customScale?: number;
+	source?: ZoomRegionSource;
 }
 
 export function getRotation3D(region: Pick<ZoomRegion, "rotationPreset">): Rotation3D {
@@ -85,13 +99,10 @@ export function lerpRotation3D(a: Rotation3D, b: Rotation3D, t: number): Rotatio
 }
 
 /**
- * Compute the maximum uniform scale that, when applied alongside `rot` and a perspective
- * of `perspective` CSS px, keeps the projected bounding box of a `width × height` element
- * inside its original `width × height` rectangle. Returns 1 when no scaling is needed.
- *
- * Math: project each rotated corner onto the screen via x' = x·P/(P−z); take the worst-case
- * |x'|/|y'| against the half-extents and return the limiting ratio. This makes the rotated
- * recording sit *inside* the zoom window instead of bleeding past it.
+ * Max uniform scale that, with `rot` and a perspective of `perspective` CSS px, keeps
+ * the projected bounding box of a width x height element inside its original rectangle.
+ * Returns 1 when no scaling is needed. Projects each rotated corner (x' = x*P/(P-z)) and
+ * returns the limiting half-extent ratio so the rotated recording stays inside the zoom window.
  */
 export function computeRotation3DContainScale(
 	rot: Rotation3D,
@@ -121,7 +132,7 @@ export function computeRotation3DContainScale(
 	let maxAbsY = 0;
 
 	for (const [x0, y0] of corners) {
-		// CSS "rotateX(α) rotateY(β) rotateZ(γ)" reads right-to-left: Z first, then Y, then X.
+		// CSS "rotateX rotateY rotateZ" applies right-to-left: Z first, then Y, then X.
 		let px = x0;
 		let py = y0;
 		let pz = 0;
@@ -144,11 +155,11 @@ export function computeRotation3DContainScale(
 		py = xy;
 		pz = xz;
 
-		// Perspective projection: viewer at (0, 0, P), looking toward −z. A point at z=pz
-		// is scaled by P / (P − pz). When perspective ≤ 0 we treat as orthographic.
+		// Viewer at (0, 0, P) looking toward -z; a point at z=pz scales by P/(P-pz).
+		// perspective <= 0 means orthographic.
 		if (perspective > 0) {
 			const denom = perspective - pz;
-			if (denom <= 0) return 1; // pathological — skip scaling rather than crash
+			if (denom <= 0) return 1; // pathological, skip scaling rather than crash
 			const f = perspective / denom;
 			px *= f;
 			py *= f;
@@ -168,7 +179,34 @@ export interface CursorTelemetryPoint {
 	timeMs: number;
 	cx: number;
 	cy: number;
+	interactionType?: "move" | "click" | "double-click" | "right-click" | "middle-click" | "mouseup";
+	cursorType?:
+		| "arrow"
+		| "text"
+		| "pointer"
+		| "crosshair"
+		| "open-hand"
+		| "closed-hand"
+		| "resize-ew"
+		| "resize-ns"
+		| "not-allowed";
 }
+
+export interface CursorVisualSettings {
+	size: number;
+	smoothing: number;
+	motionBlur: number;
+	clickBounce: number;
+	clipToBounds: boolean;
+}
+
+export const DEFAULT_CURSOR_SIZE = 3.0;
+export const DEFAULT_CURSOR_SMOOTHING = 0.67;
+export const DEFAULT_CURSOR_MOTION_BLUR = 0.35;
+export const DEFAULT_CURSOR_CLICK_BOUNCE = 2.5;
+// false lets the cursor overflow into the background; true clips it to the canvas bounds.
+export const DEFAULT_CURSOR_CLIP_TO_BOUNDS = false;
+export const DEFAULT_ZOOM_MOTION_BLUR = 0.35;
 
 export interface TrimRegion {
 	id: string;
@@ -225,6 +263,15 @@ export interface AnnotationSize {
 	height: number;
 }
 
+export type AnnotationTextAnimation =
+	| "none"
+	| "fade"
+	| "rise"
+	| "pop"
+	| "slide-left"
+	| "typewriter"
+	| "pulse";
+
 export interface AnnotationTextStyle {
 	color: string;
 	backgroundColor: string;
@@ -234,6 +281,7 @@ export interface AnnotationTextStyle {
 	fontStyle: "normal" | "italic";
 	textDecoration: "none" | "underline";
 	textAlign: "left" | "center" | "right";
+	textAnimation?: AnnotationTextAnimation;
 }
 
 export interface AnnotationRegion {
@@ -248,6 +296,8 @@ export interface AnnotationRegion {
 	size: AnnotationSize;
 	style: AnnotationTextStyle;
 	zIndex: number;
+	/** When set, layout/style edits on one region can sync to all auto-caption siblings. */
+	annotationSource?: "auto-caption";
 	figureData?: FigureData;
 	blurData?: BlurData;
 }
@@ -271,6 +321,7 @@ export const DEFAULT_ANNOTATION_STYLE: AnnotationTextStyle = {
 	fontStyle: "normal",
 	textDecoration: "none",
 	textAlign: "center",
+	textAnimation: "none",
 };
 
 export const DEFAULT_FIGURE_DATA: FigureData = {
@@ -292,7 +343,7 @@ export const DEFAULT_BLUR_FREEHAND_POINTS: Array<{ x: number; y: number }> = [
 ];
 
 export const DEFAULT_BLUR_DATA: BlurData = {
-	type: "blur",
+	type: "mosaic",
 	shape: "rectangle",
 	color: "white",
 	intensity: DEFAULT_BLUR_INTENSITY,
@@ -317,8 +368,7 @@ export const DEFAULT_CROP_REGION: CropRegion = {
 export type PlaybackSpeed = number;
 
 export const MIN_PLAYBACK_SPEED = 0.1;
-// Anything above 16x causes the playhead to stall during preview
-// due to the video decoder not being able to keep up.
+// Above 16x the decoder can't keep up and the playhead stalls during preview.
 export const MAX_PLAYBACK_SPEED = 16;
 
 export function clampPlaybackSpeed(speed: number): PlaybackSpeed {
@@ -356,7 +406,19 @@ export const ZOOM_DEPTH_SCALES: Record<ZoomDepth, number> = {
 	6: 5.0,
 };
 
+export const MIN_ZOOM_SCALE = 1.0;
+export const MAX_ZOOM_SCALE = 5.0;
+
 export const DEFAULT_ZOOM_DEPTH: ZoomDepth = 3;
+
+/** Returns the effective zoom scale for a region, preferring customScale over the preset. */
+export function getZoomScale(region: ZoomRegion): number {
+	if (region.customScale != null) {
+		const clamped = Math.max(MIN_ZOOM_SCALE, Math.min(MAX_ZOOM_SCALE, region.customScale));
+		if (Number.isFinite(clamped)) return clamped;
+	}
+	return ZOOM_DEPTH_SCALES[region.depth];
+}
 
 export function clampFocusToDepth(focus: ZoomFocus, _depth: ZoomDepth): ZoomFocus {
 	return {

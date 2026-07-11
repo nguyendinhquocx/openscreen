@@ -1,5 +1,5 @@
 import type { CursorTelemetryPoint, Rotation3D, ZoomFocus, ZoomRegion } from "../types";
-import { DEFAULT_ROTATION_3D, getRotation3D, lerpRotation3D, ZOOM_DEPTH_SCALES } from "../types";
+import { DEFAULT_ROTATION_3D, getRotation3D, getZoomScale, lerpRotation3D } from "../types";
 import { TRANSITION_WINDOW_MS, ZOOM_IN_TRANSITION_WINDOW_MS } from "./constants";
 import { interpolateCursorAt } from "./cursorFollowUtils";
 import { clampFocusToScale } from "./focusUtils";
@@ -155,7 +155,7 @@ function getActiveRegion(
 	}
 
 	const activeRegion = activeRegions[0].region;
-	const activeScale = ZOOM_DEPTH_SCALES[activeRegion.depth];
+	const activeScale = getZoomScale(activeRegion);
 
 	return {
 		region: {
@@ -176,7 +176,7 @@ function getConnectedRegionHold(
 ) {
 	for (const pair of connectedPairs) {
 		if (timeMs > pair.transitionEnd && timeMs < pair.nextRegion.startMs) {
-			const nextScale = ZOOM_DEPTH_SCALES[pair.nextRegion.depth];
+			const nextScale = getZoomScale(pair.nextRegion);
 			return {
 				region: {
 					...pair.nextRegion,
@@ -214,8 +214,8 @@ function getConnectedRegionTransition(
 		const transitionProgress = easeConnectedPan(
 			clamp01((timeMs - transitionStart) / Math.max(1, transitionEnd - transitionStart)),
 		);
-		const currentScale = ZOOM_DEPTH_SCALES[currentRegion.depth];
-		const nextScale = ZOOM_DEPTH_SCALES[nextRegion.depth];
+		const currentScale = getZoomScale(currentRegion);
+		const nextScale = getZoomScale(nextRegion);
 		const transitionScale = lerp(currentScale, nextScale, transitionProgress);
 		// Both regions share the same timeMs, so interpolate cursor once and reuse.
 		const sharedCursorFocus =
@@ -271,8 +271,8 @@ type DominantRegionResult = {
 };
 
 // Single-slot cache: the ticker calls findDominantRegion at 60fps with mostly
-// unchanged inputs (especially while paused). Reusing the previous result when
-// inputs match avoids the per-frame O(N) region scan + allocations.
+// unchanged inputs (especially while paused), so reusing the last result skips
+// the per-frame O(N) scan and allocations.
 let dominantRegionCache: {
 	regions: ZoomRegion[];
 	timeMsKey: number;

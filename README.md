@@ -1,48 +1,55 @@
+> [!Note]
+> OpenScreen is now archived and no longer maintained. For continued maintenance and development, a community-driven spin-off led by one of the core contributors is available here: https://github.com/EtienneLescot/openscreen
+
+
 > [!WARNING]
-> This is very much in beta and might be buggy here and there (but hope you have a good experience!).
+> This started as a side project that blew up; not production grade and you'll hit bugs, but hopefully it covers what you need. **This project will soon be archived.**
+
 
 <p align="center">
   <img src="public/openscreen.png" alt="OpenScreen Logo" width="64" />
   <br />
   <br />
-	<a href="https://trendshift.io/repositories/17427" target="_blank"><img src="https://trendshift.io/api/badge/repositories/17427" alt="siddharthvaddem%2Fopenscreen | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
-	<br />
-	<br />
-  <a href="https://deepwiki.com/siddharthvaddem/openscreen">
-    <img src="https://deepwiki.com/badge.svg" alt="Ask DeepWiki" />
-  </a>
-  &nbsp;
-  <a href="https://discord.gg/yAQQhRaEeg">
-    <img src="https://dcbadge.limes.pink/api/server/https://discord.gg/yAQQhRaEeg?style=flat" alt="Join Discord" />
+	<a href="https://trendshift.io/repositories/17427" target="_blank"><img src="https://trendshift.io/api/badge/repositories/17427" alt="siddharthvaddem%2Fopenscreen | Trendshift" style="width: 256px; height: 64px;" width="256" height="64"/></a>
+
+
   </a>
 </p>
 
 # <p align="center">OpenScreen</p>
 
-<p align="center"><strong>OpenScreen is your free, open-source alternative to Screen Studio (sort of).</strong></p>
+<p align="center"><strong>OpenScreen is your free, open-source alternative to Screen Studio.</strong></p>
 
-If you don't want to pay $29/month for Screen Studio but want a much simpler version that does what most people seem to need, making beautiful product demos and walkthroughs, here's a free-to-use app for you. OpenScreen does not offer all Screen Studio features, but covers the basics well!
+If you don't want to pay $29/month for Screen Studio but want a version that does what most people seem to need - quick, polished product demos and walkthroughs you'd post on X, Reddit or Youtube. OpenScreen does not offer every Screen Studio feature, but covers a lot of the core functionality.
 
-Screen Studio is an awesome product and this is definitely not a 1:1 clone. OpenScreen is a much simpler take, just the basics for folks who want control and don't want to pay. If you need all the fancy features, your best bet is to support Screen Studio (they really do a great job, haha). But if you just want something free (no gotchas) and open, this project does the job!
+Screen Studio is an awesome product and this is definitely not a 1:1 clone. If you just want something fully free and open source, this project should cover most of your needs.
 
-OpenScreen is 100% free for personal and commercial use. Use it, modify it, distribute it. (Just be cool 😁 and give a shoutout if you feel like it !)
+**100% free** for both **personal** and **commercial** use. Use it, modify it, distribute it. Please respect the License. 
+
+> [!NOTE]
+>Software should be accessible. OpenScreen has no paid tiers, premium features, upsells, or functionality locked behind a paywall.
 
 <p align="center">
-	<img src="public/preview3.png" alt="OpenScreen App Preview 3" style="height: 0.2467; margin-right: 12px;" />
-	<img src="public/preview4.png" alt="OpenScreen App Preview 4" style="height: 0.1678; margin-right: 12px;" />
+	<img src="public/demo.png" alt="" style="height: 0.2467; margin-right: 12px;" />
+  <img src="public/sample.png" alt="" style="height: 0.2467; margin-right: 12px;" />
 </p>
 
 ## Core Features
-- Record specific windows or your whole screen.
-- Add automatic or manual zooms (adjustable depth levels) and customize their durarion and position.
+- Record a specific window, or your whole screen.
 - Record microphone and system audio.
-- Crop video recordings to hide parts.
-- Choose between wallpapers, solid colors, gradients or a custom background.
-- Motion blur for smoother pan and zoom effects.
-- Add annotations (text, arrows, images).
-- Trim sections of the clip.
-- Customize the speed of different segments.
-- Export in different aspect ratios and resolutions.
+- Webcam overlay with picture-in-picture, drag-to-position, mirroring, and shape options.
+- Auto or manual zooms with adjustable depth, duration, easing, and pixel-precise position; auto-zoom follows your cursor as you work.
+- Custom cursor size, smoothing, and click effects, with cursor themes and post-recording path smoothing.
+- Automatic captions for voiceovers, generated on-device with no upload (works offline).
+- Wallpapers, solid colors, gradients, or your own background image.
+- Motion blur.
+- Crop, trim, and per-segment speed control on the timeline.
+- Text, arrow, and image annotations, with text animation presets.
+- Timeline snapping guides and an audio waveform to make trimming easier.
+- Customizable keyboard shortcuts.
+- Export to MP4 or GIF in multiple aspect ratios and resolutions.
+- Languages supported: Arabic, English, Spanish, French, Italian, Japanese, Korean, Portuguese (Brazil), Russian, Turkish, Vietnamese, Simplified Chinese, and Traditional Chinese.
+
 
 ## Installation
 
@@ -50,7 +57,20 @@ Download the latest installer for your platform from the [GitHub Releases](https
 
 ### macOS
 
-If you encounter issues with macOS Gatekeeper blocking the app (since it does not come with a developer certificate), you can bypass this by running the following command in your terminal after installation:
+The easiest way to install on macOS is via [Homebrew](https://brew.sh):
+
+```bash
+brew install --cask siddharthvaddem/openscreen/openscreen
+```
+
+Brew automatically picks the right build for Apple Silicon or Intel, and verifies the download against a notarized signature so Gatekeeper won't block it.
+
+To update later: `brew upgrade --cask openscreen`
+To uninstall: `brew uninstall --cask openscreen` (add `--zap` to also remove app data)
+
+#### Manual install (if you prefer)
+
+If you'd rather grab the `.dmg` directly from the [Releases page](https://github.com/siddharthvaddem/openscreen/releases) and encounter Gatekeeper blocking the app, you can bypass it by running the following command in your terminal after installation:
 
 ```bash
 xattr -rd com.apple.quarantine /Applications/Openscreen.app
@@ -60,60 +80,92 @@ Note: Give your terminal Full Disk Access in **System Settings > Privacy & Secur
 
 After running this command, proceed to **System Preferences > Security & Privacy** to grant the necessary permissions for "screen recording" and "accessibility". Once permissions are granted, you can launch the app.
 
+> [!NOTE]
+> **Upgrading from an older version and hitting permission issues?** If you already had OpenScreen installed and the new version won't record (Screen Recording or Accessibility keep failing even after you grant them), uninstall the old version, remove OpenScreen's existing entries under **System Settings > Privacy & Security** (both Screen Recording and Accessibility), then do a fresh install and grant the permissions again when prompted.
+
+### Windows
+
+Install via [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/):
+
+```bash
+winget install SiddharthVaddem.OpenScreen
+```
+
+To update later: `winget upgrade SiddharthVaddem.OpenScreen`
+To uninstall: `winget uninstall SiddharthVaddem.OpenScreen`
+
+If you'd rather grab the `.exe` installer directly, download it from the [Releases page](https://github.com/siddharthvaddem/openscreen/releases).
+
 ### Linux
 
-Download the `.AppImage` file from the releases page. Make it executable and run:
+Three packages are published to the [Releases page](https://github.com/siddharthvaddem/openscreen/releases) for each version. Pick the one that matches your distro:
 
+**Debian / Ubuntu / Pop!_OS (`.deb`)**
+```bash
+sudo apt install ./Openscreen-Linux-latest.deb
+```
+
+**Arch / Manjaro (`.pacman`)**
+```bash
+sudo pacman -U Openscreen-Linux-latest.pacman
+```
+
+**Any distro (`.AppImage`)**
 ```bash
 chmod +x Openscreen-Linux-*.AppImage
 ./Openscreen-Linux-*.AppImage
 ```
 
+**NixOS / Nix (flake)**
+
+Try without installing:
+```bash
+nix run github:siddharthvaddem/openscreen
+```
+
+Install into your user profile:
+```bash
+nix profile install github:siddharthvaddem/openscreen
+```
+
+For a NixOS system config (flake):
+```nix
+{
+  inputs.openscreen.url = "github:siddharthvaddem/openscreen";
+
+  outputs = { nixpkgs, openscreen, ... }: {
+    nixosConfigurations.<host> = nixpkgs.lib.nixosSystem {
+      modules = [
+        openscreen.nixosModules.default
+        { programs.openscreen.enable = true; }
+      ];
+    };
+  };
+}
+```
+
+For Home Manager, use `openscreen.homeManagerModules.default` with the same `programs.openscreen.enable = true;`.
+
 You may need to grant screen recording permissions depending on your desktop environment.
 
-**Note:** If the app fails to launch due to a "sandbox" error, run it with --no-sandbox:
+**Sandbox error:** If the AppImage fails to launch with a "sandbox" error, run it with `--no-sandbox`:
 ```bash
 ./Openscreen-Linux-*.AppImage --no-sandbox
 ```
 
-### Limitations
+### Platform differences
 
-System audio capture relies on Electron's [desktopCapturer](https://www.electronjs.org/docs/latest/api/desktop-capturer) and has some platform-specific quirks:
+Everything in the editor and export is the same on macOS, Windows, and Linux: zooms, backgrounds, motion blur, crop/trim/speed, blur regions, annotations, auto-captions, projects, export, and all languages. The differences are in **capture**, where macOS and Windows use a native pipeline that Linux doesn't have:
 
-- **macOS**: Requires macOS 13+. On macOS 14.2+ you'll be prompted to grant audio capture permission. macOS 12 and below does not support system audio (mic still works).
-- **Windows**: Works out of the box.
-- **Linux**: Needs PipeWire (default on Ubuntu 22.04+, Fedora 34+). Older PulseAudio-only setups may not support system audio (mic should still work).
-
-## Built with
-- Electron
-- React
-- TypeScript
-- Vite
-- PixiJS
-- dnd-timeline
+- **Native recording**: macOS (ScreenCaptureKit) and Windows (Windows Graphics Capture) record through a native pipeline for higher quality and clean window-level capture. Linux records through the browser pipeline instead.
+- **Custom cursors**: on macOS and Windows the real cursor is captured (shape, type, and clicks), which powers the cursor themes, click effects, and editable cursor overlay. On Linux only the cursor position is captured (used for auto-zoom), so those cursor options aren't available.
+- **Webcam**: captured natively on macOS and Windows; on Linux it's recorded through the browser, but still works as a picture-in-picture overlay.
+- **System audio** support varies by OS:
+  - **macOS**: requires macOS 13+. On macOS 14.2+ you'll be prompted to grant audio capture permission. macOS 12 and below can't capture system audio (mic still works).
+  - **Windows**: works out of the box.
+  - **Linux**: needs PipeWire (default on Ubuntu 22.04+, Fedora 34+). Older PulseAudio-only setups may not capture system audio (mic should still work).
 
 ---
-
-_I'm new to open source, idk what I'm doing lol. If something is wrong please raise an issue 🙏_
-
-## Documentation
-
-See the documentation here:
-[OpenScreen Docs](https://deepwiki.com/siddharthvaddem/openscreen)
-
-## Contributing
-
-Contributions are welcome! If you’d like to help out or see what’s currently being worked on, take a look at the open issues and the [project roadmap](https://github.com/users/siddharthvaddem/projects/3) to understand the current direction of the project and find ways to contribute.
-
-## Star History
-
-<a href="https://www.star-history.com/?repos=siddharthvaddem%2Fopenscreen&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=siddharthvaddem/openscreen&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=siddharthvaddem/openscreen&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=siddharthvaddem/openscreen&type=date&legend=top-left" />
- </picture>
-</a>
 
 ## License
 

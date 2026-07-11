@@ -44,6 +44,8 @@ describe("projectPersistence media compatibility", () => {
 				aspectRatio: "16:9",
 				webcamLayoutPreset: "picture-in-picture",
 				webcamMaskShape: "circle",
+				webcamMirrored: true,
+				webcamSizePreset: 25,
 				webcamPosition: null,
 				exportQuality: "good",
 				exportFormat: "mp4",
@@ -66,6 +68,12 @@ describe("projectPersistence media compatibility", () => {
 		expect(
 			normalizeProjectEditor({ webcamMaskShape: "not-a-real-shape" as never }).webcamMaskShape,
 		).toBe("rectangle");
+	});
+
+	it("normalizes webcam mirroring safely", () => {
+		expect(normalizeProjectEditor({ webcamMirrored: true }).webcamMirrored).toBe(true);
+		expect(normalizeProjectEditor({ webcamMirrored: false }).webcamMirrored).toBe(false);
+		expect(normalizeProjectEditor({ webcamMirrored: "yes" as never }).webcamMirrored).toBe(false);
 	});
 
 	it("normalizes blur region type and mosaic block size safely", () => {
@@ -132,7 +140,7 @@ describe("projectPersistence media compatibility", () => {
 		expect(editor.annotationRegions[0].blurData?.color).toBe("black");
 		expect(editor.annotationRegions[0].blurData?.intensity).toBe(40);
 		expect(editor.annotationRegions[0].blurData?.blockSize).toBe(48);
-		expect(editor.annotationRegions[1].blurData?.type).toBe("blur");
+		expect(editor.annotationRegions[1].blurData?.type).toBe("mosaic");
 		expect(editor.annotationRegions[1].blurData?.color).toBe("white");
 		expect(editor.annotationRegions[1].blurData?.blockSize).toBe(4);
 	});

@@ -1,3 +1,7 @@
+import {
+	DEFAULT_EDITOR_LAYOUT_SETTINGS,
+	DEFAULT_EXPORT_SETTINGS,
+} from "@/components/video-editor/editorDefaults";
 import type { ExportFormat, ExportQuality } from "@/lib/exporter";
 import type { AspectRatio } from "@/utils/aspectRatioUtils";
 
@@ -23,15 +27,25 @@ export interface UserPreferences {
 	exportQuality: ExportQuality;
 	/** Default export format */
 	exportFormat: ExportFormat;
+	/** Folder used for the most recent successful export, if any */
+	exportFolder: string | null;
+	/** Folder of the most recently opened project, if any */
+	projectFolder: string | null;
+	/** Recording HUD control layout */
+	trayLayout: "horizontal" | "vertical";
 }
 
-const DEFAULT_PREFS: UserPreferences = {
-	padding: 50,
-	aspectRatio: "16:9",
-	exportQuality: "good",
-	exportFormat: "mp4",
+export const DEFAULT_PREFS: UserPreferences = {
+	padding: DEFAULT_EDITOR_LAYOUT_SETTINGS.padding,
+	aspectRatio: DEFAULT_EDITOR_LAYOUT_SETTINGS.aspectRatio,
+	exportQuality: DEFAULT_EXPORT_SETTINGS.quality,
+	exportFormat: DEFAULT_EXPORT_SETTINGS.format,
+	exportFolder: null,
+	projectFolder: null,
+	trayLayout: "horizontal",
 };
 
+/** Parses stored preferences without throwing on malformed JSON. */
 function safeJsonParse(text: string | null): Record<string, unknown> | null {
 	if (!text) return null;
 	try {
@@ -41,10 +55,7 @@ function safeJsonParse(text: string | null): Record<string, unknown> | null {
 	}
 }
 
-/**
- * Load persisted user preferences from localStorage.
- * Returns defaults for any missing or invalid fields.
- */
+/** Load preferences from localStorage, falling back to defaults for missing or invalid fields. */
 export function loadUserPreferences(): UserPreferences {
 	let raw: Record<string, unknown> | null = null;
 	try {
@@ -76,19 +87,59 @@ export function loadUserPreferences(): UserPreferences {
 			raw.exportFormat === "gif" || raw.exportFormat === "mp4"
 				? (raw.exportFormat as ExportFormat)
 				: DEFAULT_PREFS.exportFormat,
+		exportFolder:
+			typeof raw.exportFolder === "string" && raw.exportFolder.length > 0
+				? raw.exportFolder
+				: DEFAULT_PREFS.exportFolder,
+		projectFolder:
+			typeof raw.projectFolder === "string" && raw.projectFolder.length > 0
+				? raw.projectFolder
+				: DEFAULT_PREFS.projectFolder,
+		trayLayout:
+			raw.trayLayout === "horizontal" || raw.trayLayout === "vertical"
+				? raw.trayLayout
+				: DEFAULT_PREFS.trayLayout,
 	};
 }
 
 /**
- * Persist user preferences to localStorage.
- * Only the explicitly provided fields are updated.
+ * Parent directory of a saved file path. Handles both POSIX and Windows
+ * separators since the path comes from the OS save dialog. Root dirs keep their
+ * trailing separator so the result stays a valid directory ("/video.mp4" -> "/",
+ * "C:\\video.mp4" -> "C:\\"). Returns null if no separator is found.
  */
+export function parentDirectoryOf(filePath: string): string | null {
+	const lastSep = Math.max(filePath.lastIndexOf("/"), filePath.lastIndexOf("\\"));
+	if (lastSep < 0) return null;
+
+	// POSIX root, e.g. "/video.mp4" -> "/"
+	if (lastSep === 0) return filePath[0];
+
+	// Windows drive root, e.g. "C:\\video.mp4" -> "C:\\"
+	if (lastSep === 2 && /^[A-Za-z]:[/\\]/.test(filePath)) {
+		return filePath.slice(0, lastSep + 1);
+	}
+
+	return filePath.slice(0, lastSep);
+}
+
+/** Remembered export folder as `string | undefined`, for IPC handlers that treat absence as "use the default". */
+export function getExportFolder(): string | undefined {
+	return loadUserPreferences().exportFolder ?? undefined;
+}
+
+/** Remembered open-project folder as `string | undefined`, for IPC handlers that treat absence as "use the default". */
+export function getProjectFolder(): string | undefined {
+	return loadUserPreferences().projectFolder ?? undefined;
+}
+
+/** Persist preferences to localStorage; only the provided fields are updated. */
 export function saveUserPreferences(partial: Partial<UserPreferences>): void {
 	const current = loadUserPreferences();
 	const merged = { ...current, ...partial };
 	try {
 		localStorage.setItem(PREFS_KEY, JSON.stringify(merged));
 	} catch {
-		// localStorage may be unavailable (e.g. private browsing quota exceeded)
+		// localStorage may be unavailable (e.g. private browsing, quota exceeded)
 	}
 }

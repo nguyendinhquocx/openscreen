@@ -7,7 +7,9 @@
 		"pauseRecording": "Mettre en pause l'enregistrement",
 		"resumeRecording": "Reprendre l'enregistrement",
 		"openVideoFile": "Ouvrir un fichier vidéo",
-		"openProject": "Ouvrir un projet"
+		"openProject": "Ouvrir un projet",
+		"useVerticalTray": "Utiliser la barre verticale",
+		"useHorizontalTray": "Utiliser la barre horizontale"
 	},
 	"audio": {
 		"enableSystemAudio": "Activer l'audio système",
@@ -23,6 +25,10 @@
 		"searching": "Recherche en cours...",
 		"noneFound": "Aucune caméra trouvée",
 		"unavailable": "Caméra non disponible"
+	},
+	"cursor": {
+		"useEditableCursor": "Utiliser le curseur éditable",
+		"useSystemCursor": "Utiliser le curseur système"
 	},
 	"sourceSelector": {
 		"loading": "Chargement des sources...",

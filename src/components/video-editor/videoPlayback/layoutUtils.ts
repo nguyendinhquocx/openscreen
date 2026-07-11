@@ -32,6 +32,7 @@ interface LayoutResult {
 	baseScale: number;
 	baseOffset: { x: number; y: number };
 	maskRect: RenderRect;
+	maskBorderRadius: number;
 	webcamRect: StyledRenderRect | null;
 	cropBounds: { startX: number; endX: number; startY: number; endY: number };
 }
@@ -72,10 +73,8 @@ export function layoutVideoContent(params: LayoutParams): LayoutResult | null {
 	app.canvas.style.width = "100%";
 	app.canvas.style.height = "100%";
 
-	// Apply crop region
 	const crop = cropRegion || { x: 0, y: 0, width: 1, height: 1 };
 
-	// Calculate the cropped dimensions
 	const croppedVideoWidth = videoWidth * crop.width;
 	const croppedVideoHeight = videoHeight * crop.height;
 
@@ -84,9 +83,8 @@ export function layoutVideoContent(params: LayoutParams): LayoutResult | null {
 	const cropEndX = cropStartX + croppedVideoWidth;
 	const cropEndY = cropStartY + croppedVideoHeight;
 
-	// Calculate scale to fit the cropped area in the viewport
-	// Padding is a percentage (0-100), where 50 matches the original VIEWPORT_SCALE of 0.8
-	// Vertical stack ignores padding — it's full-bleed
+	// Padding is a percent (0-100); 50 matches the original VIEWPORT_SCALE of 0.8.
+	// Vertical stack is full-bleed, so it ignores padding.
 	const effectivePadding = webcamLayoutPreset === "vertical-stack" ? 0 : padding;
 	const paddingScale = 1.0 - (effectivePadding / 100) * 0.4;
 	const maxDisplayWidth = width * paddingScale;
@@ -119,11 +117,10 @@ export function layoutVideoContent(params: LayoutParams): LayoutResult | null {
 
 	videoSprite.scale.set(scale);
 
-	// Calculate display size of the full video at this scale
 	const fullVideoDisplayWidth = videoWidth * scale;
 	const fullVideoDisplayHeight = videoHeight * scale;
 
-	// Position the video so the cropped region is centered within the screenRect
+	// Position the video so the cropped region is centered within screenRect.
 	const croppedDisplayWidth = croppedVideoWidth * scale;
 	const croppedDisplayHeight = croppedVideoHeight * scale;
 	const offsetX = screenRect.x + (screenRect.width - croppedDisplayWidth) / 2;
@@ -133,7 +130,7 @@ export function layoutVideoContent(params: LayoutParams): LayoutResult | null {
 
 	videoSprite.position.set(spriteX, spriteY);
 
-	// Apply border radius — mask clips the video to the screenRect
+	// Mask clips the video to screenRect, with border radius.
 	maskGraphics.clear();
 	maskGraphics.roundRect(
 		screenRect.x,
@@ -150,6 +147,8 @@ export function layoutVideoContent(params: LayoutParams): LayoutResult | null {
 		baseScale: scale,
 		baseOffset: { x: spriteX, y: spriteY },
 		maskRect: compositeLayout.screenRect,
+		maskBorderRadius:
+			compositeLayout.screenBorderRadius ?? (compositeLayout.screenCover ? 0 : borderRadius),
 		webcamRect: compositeLayout.webcamRect,
 		cropBounds: { startX: cropStartX, endX: cropEndX, startY: cropStartY, endY: cropEndY },
 	};

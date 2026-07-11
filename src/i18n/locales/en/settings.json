@@ -1,13 +1,16 @@
 {
 	"zoom": {
+		"previewHold": "Hold to preview zoom effect",
 		"level": "Zoom Level",
+		"customScale": "Custom Zoom",
 		"selectRegion": "Select a zoom region to adjust",
 		"deleteZoom": "Delete Zoom",
 		"focusMode": {
 			"title": "Focus Mode",
 			"manual": "Manual",
 			"auto": "Auto",
-			"autoDescription": "Camera follows the recorded cursor position"
+			"autoDescription": "Camera follows the recorded cursor position",
+			"lockedDisclaimer": "Controlled by the global Auto-Focus toggle in the timeline. Turn it off to set focus mode per zoom."
 		},
 		"threeD": {
 			"title": "3D Rotation",
@@ -16,6 +19,12 @@
 				"left": "Left",
 				"right": "Right"
 			}
+		},
+		"position": {
+			"title": "Focus Position",
+			"x": "X (%)",
+			"y": "Y (%)",
+			"hint": "0 = leftmost / topmost, 100 = rightmost / bottommost"
 		}
 	},
 	"speed": {
@@ -35,14 +44,19 @@
 		"pictureInPicture": "Picture in Picture",
 		"verticalStack": "Vertical Stack",
 		"dualFrame": "Dual Frame",
+		"noWebcam": "No Webcam",
 		"webcamShape": "Camera Shape",
-		"webcamSize": "Webcam Size"
+		"webcamSize": "Webcam Size",
+		"mirrorWebcam": "Mirror Webcam",
+		"reactiveWebcam": "Shrink on Zoom",
+		"reactiveWebcamDescription": "Camera smoothly shrinks while the video is zoomed in, so it stays out of the way."
 	},
 	"effects": {
 		"title": "Video Effects",
 		"blurBg": "Blur BG",
 		"motionBlur": "Motion Blur",
 		"off": "off",
+		"on": "on",
 		"shadow": "Shadow",
 		"roundness": "Roundness",
 		"padding": "Padding"
@@ -76,10 +90,10 @@
 		"gifDescription": "Animated image for sharing"
 	},
 	"exportQuality": {
-		"title": "Export Quality",
-		"low": "Low",
-		"medium": "Medium",
-		"high": "High"
+		"title": "Export resolution",
+		"low": "720p",
+		"medium": "1080p",
+		"high": "Source"
 	},
 	"gifSettings": {
 		"frameRate": "GIF Frame Rate",
@@ -88,20 +102,22 @@
 	},
 	"project": {
 		"save": "Save Project",
-		"load": "Load Project"
+		"load": "Load Project",
+		"new": "New Project"
 	},
 	"export": {
 		"videoButton": "Export Video",
 		"gifButton": "Export GIF",
 		"chooseSaveLocation": "Choose Save Location"
 	},
-	"links": {
+	"support": {
 		"reportBug": "Report Bug",
+		"saveDiagnostics": "Save Diagnostics",
 		"starOnGithub": "Star on GitHub"
 	},
 	"imageUpload": {
 		"invalidFileType": "Invalid file type",
-		"jpgOnly": "Please upload a JPG or JPEG image file.",
+		"jpgOnly": "Please upload a JPG, JPEG, or PNG image file.",
 		"uploadSuccess": "Custom image uploaded successfully!",
 		"failedToUpload": "Failed to upload image",
 		"errorReading": "There was an error reading the file."
@@ -163,6 +179,17 @@
 		"modern": "Modern",
 		"clean": "Clean"
 	},
+	"textAnimation": {
+		"title": "Text Animation",
+		"selectAnimation": "Select animation",
+		"none": "None",
+		"fade": "Fade",
+		"rise": "Rise",
+		"pop": "Pop",
+		"slideLeft": "Slide Left",
+		"typewriter": "Typewriter",
+		"pulse": "Pulse"
+	},
 	"customFont": {
 		"dialogTitle": "Add Google Font",
 		"urlLabel": "Google Fonts Import URL",
@@ -182,7 +209,22 @@
 		"errorTimeout": "Font took too long to load. Please check the URL and try again.",
 		"errorLoadFailed": "The font could not be loaded. Please verify the Google Fonts URL is correct."
 	},
+	"cursor": {
+		"theme": "Cursor Style",
+		"themeDefault": "Default",
+		"show": "Show Cursor",
+		"size": "Size",
+		"smoothing": "Smoothing",
+		"motionBlur": "Motion Blur",
+		"clickBounce": "Click Bounce",
+		"clipToBounds": "Clip to Canvas",
+		"clipToBoundsDescription": "Keeps the cursor inside the video frame. Turn off to let the cursor extend past the edges - useful when zoomed in or panned."
+	},
 	"language": {
 		"title": "Language"
+	},
+	"timeline": {
+		"title": "Timeline",
+		"waveform": "Show Audio Waveform on Trim Track"
 	}
 }

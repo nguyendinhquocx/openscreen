@@ -14,6 +14,7 @@ interface ItemProps {
 	isSelected?: boolean;
 	onSelect?: () => void;
 	zoomDepth?: number;
+	zoomCustomScale?: number;
 	speedValue?: number;
 	isAutoFocus?: boolean;
 	variant?: "zoom" | "trim" | "annotation" | "speed" | "blur";
@@ -46,6 +47,7 @@ export default function Item({
 	isSelected = false,
 	onSelect,
 	zoomDepth = 1,
+	zoomCustomScale,
 	speedValue,
 	isAutoFocus = false,
 	variant = "zoom",
@@ -77,9 +79,8 @@ export default function Item({
 		[span.start, span.end],
 	);
 
-	// Minimum clickable width on the outer wrapper.
-	// Kept small (6px) so items visually distinguish their real positions;
-	// users should zoom in to interact with sub-second items precisely.
+	// Minimum clickable width on the outer wrapper. Kept small so items keep their real
+	// positions; zoom in to interact with sub-second items precisely.
 	const MIN_ITEM_PX = 6;
 	const safeItemStyle = { ...itemStyle, minWidth: MIN_ITEM_PX };
 
@@ -99,7 +100,7 @@ export default function Item({
 						"w-full h-full overflow-hidden flex items-center justify-center gap-1.5 cursor-grab active:cursor-grabbing relative",
 						isSelected && glassStyles.selected,
 					)}
-					style={{ height: 40, color: "#fff", minWidth: 24 }}
+					style={{ height: 30, color: "#fff", minWidth: 24 }}
 					onClick={(event) => {
 						event.stopPropagation();
 						onSelect?.();
@@ -128,13 +129,15 @@ export default function Item({
 						title="Resize right"
 					/>
 					{/* Content */}
-					<div className="relative z-10 flex flex-col items-center justify-center text-white/90 opacity-80 group-hover:opacity-100 transition-opacity select-none overflow-hidden">
+					<div className="relative z-10 flex min-w-0 flex-col items-center justify-center text-white/90 opacity-85 group-hover:opacity-100 transition-opacity select-none overflow-hidden px-3">
 						<div className="flex items-center gap-1.5">
 							{isZoom ? (
 								<>
 									<ZoomIn className="w-3.5 h-3.5 shrink-0" />
-									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
-										{ZOOM_LABELS[zoomDepth] || `${zoomDepth}×`}
+									<span className="text-[11px] font-semibold whitespace-nowrap">
+										{zoomCustomScale != null
+											? `${zoomCustomScale.toFixed(2)}×`
+											: ZOOM_LABELS[zoomDepth] || `${zoomDepth}×`}
 									</span>
 									{isAutoFocus && (
 										<MousePointer2
@@ -146,21 +149,21 @@ export default function Item({
 							) : isTrim ? (
 								<>
 									<Scissors className="w-3.5 h-3.5 shrink-0" />
-									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+									<span className="text-[11px] font-semibold whitespace-nowrap">
 										{t("labels.trim")}
 									</span>
 								</>
 							) : isSpeed ? (
 								<>
 									<Gauge className="w-3.5 h-3.5 shrink-0" />
-									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+									<span className="text-[11px] font-semibold whitespace-nowrap">
 										{speedValue !== undefined ? `${speedValue}×` : t("labels.speed")}
 									</span>
 								</>
 							) : (
 								<>
 									<MessageSquare className="w-3.5 h-3.5 shrink-0" />
-									<span className="text-[11px] font-semibold tracking-tight whitespace-nowrap">
+									<span className="text-[11px] font-semibold truncate whitespace-nowrap">
 										{children}
 									</span>
 								</>

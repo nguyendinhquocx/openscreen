@@ -1,5 +1,9 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
+import type { NativeMacRecordingRequest } from "../src/lib/nativeMacRecording";
+import type { NativeWindowsRecordingRequest } from "../src/lib/nativeWindowsRecording";
 import type { RecordingSession, StoreRecordedSessionInput } from "../src/lib/recordingSession";
+import type { ShortcutBinding } from "../src/lib/shortcuts";
+import { NATIVE_BRIDGE_CHANNEL, type NativeBridgeRequest } from "../src/native/contracts";
 
 // Asset base URL is passed from the main process via webPreferences.additionalArguments
 // (see windows.ts). Sandboxed preloads cannot import node:path / node:url, so we
@@ -10,11 +14,23 @@ const assetBaseUrl = assetBaseUrlArg ? assetBaseUrlArg.slice(ASSET_BASE_URL_ARG_
 
 contextBridge.exposeInMainWorld("electronAPI", {
 	assetBaseUrl,
+	invokeNativeBridge: <TData>(request: NativeBridgeRequest) => {
+		return ipcRenderer.invoke(NATIVE_BRIDGE_CHANNEL, request) as Promise<TData>;
+	},
 	hudOverlayHide: () => {
 		ipcRenderer.send("hud-overlay-hide");
 	},
 	hudOverlayClose: () => {
 		ipcRenderer.send("hud-overlay-close");
+	},
+	setHudOverlayIgnoreMouseEvents: (ignore: boolean) => {
+		ipcRenderer.send("hud-overlay-ignore-mouse-events", ignore);
+	},
+	moveHudOverlayBy: (deltaX: number, deltaY: number) => {
+		ipcRenderer.send("hud-overlay-move-by", deltaX, deltaY);
+	},
+	setHudOverlaySize: (width: number, height: number) => {
+		ipcRenderer.send("hud-overlay-set-size", width, height);
 	},
 	getSources: async (opts: Electron.SourcesOptions) => {
 		return await ipcRenderer.invoke("get-sources", opts);
@@ -40,22 +56,75 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	requestCameraAccess: () => {
 		return ipcRenderer.invoke("request-camera-access");
 	},
-	requestAccessibilityAccess: () => {
-		return ipcRenderer.invoke("request-accessibility-access");
+	requestScreenAccess: () => {
+		return ipcRenderer.invoke("request-screen-access");
 	},
-
+	requestNativeMacCursorAccess: () => {
+		return ipcRenderer.invoke("request-native-mac-cursor-access");
+	},
 	storeRecordedVideo: (videoData: ArrayBuffer, fileName: string) => {
 		return ipcRenderer.invoke("store-recorded-video", videoData, fileName);
 	},
 	storeRecordedSession: (payload: StoreRecordedSessionInput) => {
 		return ipcRenderer.invoke("store-recorded-session", payload);
 	},
+	openRecordingStream: (fileName: string) => {
+		return ipcRenderer.invoke("open-recording-stream", fileName);
+	},
+	appendRecordingChunk: (fileName: string, chunk: ArrayBuffer) => {
+		return ipcRenderer.invoke("append-recording-chunk", fileName, chunk);
+	},
+	closeRecordingStream: (fileName: string) => {
+		return ipcRenderer.invoke("close-recording-stream", fileName);
+	},
 
 	getRecordedVideoPath: () => {
 		return ipcRenderer.invoke("get-recorded-video-path");
 	},
-	setRecordingState: (recording: boolean, recordingId?: number) => {
-		return ipcRenderer.invoke("set-recording-state", recording, recordingId);
+	setRecordingState: (
+		recording: boolean,
+		recordingId?: number,
+		cursorCaptureMode?: import("../src/lib/recordingSession").CursorCaptureMode,
+	) => {
+		return ipcRenderer.invoke("set-recording-state", recording, recordingId, cursorCaptureMode);
+	},
+	isNativeWindowsCaptureAvailable: () => {
+		return ipcRenderer.invoke("is-native-windows-capture-available");
+	},
+	isNativeMacCaptureAvailable: () => {
+		return ipcRenderer.invoke("is-native-mac-capture-available");
+	},
+	startNativeWindowsRecording: (request: NativeWindowsRecordingRequest) => {
+		return ipcRenderer.invoke("start-native-windows-recording", request);
+	},
+	stopNativeWindowsRecording: (discard?: boolean) => {
+		return ipcRenderer.invoke("stop-native-windows-recording", discard);
+	},
+	pauseNativeWindowsRecording: () => {
+		return ipcRenderer.invoke("pause-native-windows-recording");
+	},
+	resumeNativeWindowsRecording: () => {
+		return ipcRenderer.invoke("resume-native-windows-recording");
+	},
+	startNativeMacRecording: (request: NativeMacRecordingRequest) => {
+		return ipcRenderer.invoke("start-native-mac-recording", request);
+	},
+	pauseNativeMacRecording: () => {
+		return ipcRenderer.invoke("pause-native-mac-recording");
+	},
+	resumeNativeMacRecording: () => {
+		return ipcRenderer.invoke("resume-native-mac-recording");
+	},
+	stopNativeMacRecording: (discard?: boolean) => {
+		return ipcRenderer.invoke("stop-native-mac-recording", discard);
+	},
+	attachNativeMacWebcamRecording: (payload: {
+		screenVideoPath: string;
+		recordingId: number;
+		webcam: { fileName: string; videoData: ArrayBuffer };
+		cursorCaptureMode?: import("../src/lib/recordingSession").CursorCaptureMode;
+	}) => {
+		return ipcRenderer.invoke("attach-native-mac-webcam-recording", payload);
 	},
 	getCursorTelemetry: (videoPath?: string) => {
 		return ipcRenderer.invoke("get-cursor-telemetry", videoPath);
@@ -71,8 +140,11 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	openExternalUrl: (url: string) => {
 		return ipcRenderer.invoke("open-external-url", url);
 	},
-	saveExportedVideo: (videoData: ArrayBuffer, fileName: string) => {
-		return ipcRenderer.invoke("save-exported-video", videoData, fileName);
+	pickExportSavePath: (fileName: string, exportFolder?: string) => {
+		return ipcRenderer.invoke("pick-export-save-path", fileName, exportFolder);
+	},
+	writeExportToPath: (videoData: ArrayBuffer, filePath: string) => {
+		return ipcRenderer.invoke("write-export-to-path", videoData, filePath);
 	},
 	openVideoFilePicker: () => {
 		return ipcRenderer.invoke("open-video-file-picker");
@@ -92,17 +164,40 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	readBinaryFile: (filePath: string) => {
 		return ipcRenderer.invoke("read-binary-file", filePath);
 	},
+	preparePreviewAudioTrack: (filePath: string) => {
+		return ipcRenderer.invoke("prepare-preview-audio-track", filePath);
+	},
 	clearCurrentVideoPath: () => {
 		return ipcRenderer.invoke("clear-current-video-path");
 	},
 	saveProjectFile: (projectData: unknown, suggestedName?: string, existingProjectPath?: string) => {
 		return ipcRenderer.invoke("save-project-file", projectData, suggestedName, existingProjectPath);
 	},
-	loadProjectFile: () => {
-		return ipcRenderer.invoke("load-project-file");
+	loadProjectFile: (projectFolder?: string) => {
+		return ipcRenderer.invoke("load-project-file", projectFolder);
+	},
+	loadProjectFileFromPath: (filePath: string) => {
+		return ipcRenderer.invoke("load-project-file-from-path", filePath);
+	},
+	getPathForFile: (file: File) => {
+		try {
+			return webUtils.getPathForFile(file);
+		} catch {
+			return "";
+		}
 	},
 	loadCurrentProjectFile: () => {
 		return ipcRenderer.invoke("load-current-project-file");
+	},
+	onMenuNewProject: (callback: () => void) => {
+		const listener = () => callback();
+		ipcRenderer.on("menu-new-project", listener);
+		return () => ipcRenderer.removeListener("menu-new-project", listener);
+	},
+	onMenuImportVideo: (callback: () => void) => {
+		const listener = () => callback();
+		ipcRenderer.on("menu-import-video", listener);
+		return () => ipcRenderer.removeListener("menu-import-video", listener);
 	},
 	onMenuLoadProject: (callback: () => void) => {
 		const listener = () => callback();
@@ -131,8 +226,19 @@ contextBridge.exposeInMainWorld("electronAPI", {
 	saveShortcuts: (shortcuts: unknown) => {
 		return ipcRenderer.invoke("save-shortcuts", shortcuts);
 	},
+	updateGlobalShortcut: (binding: ShortcutBinding) => {
+		return ipcRenderer.invoke("update-global-shortcut", binding);
+	},
 	setLocale: (locale: string) => {
 		return ipcRenderer.invoke("set-locale", locale);
+	},
+	saveDiagnostic: (payload: {
+		error: string;
+		stack?: string;
+		projectState: unknown;
+		logs: string[];
+	}) => {
+		return ipcRenderer.invoke("save-diagnostic", payload);
 	},
 	setMicrophoneExpanded: (expanded: boolean) => {
 		ipcRenderer.send("hud:setMicrophoneExpanded", expanded);
@@ -165,5 +271,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
 		};
 		ipcRenderer.on("request-save-before-close", listener);
 		return () => ipcRenderer.removeListener("request-save-before-close", listener);
+	},
+	onRequestCloseConfirm: (callback: () => void) => {
+		const listener = () => callback();
+		ipcRenderer.on("request-close-confirm", listener);
+		return () => ipcRenderer.removeListener("request-close-confirm", listener);
+	},
+	sendCloseConfirmResponse: (choice: "save" | "discard" | "cancel") => {
+		ipcRenderer.send("close-confirm-response", choice);
 	},
 });
